@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+enum DocumentStatus {
+  PENDING
+  PARTIALLY_SIGNED
+  SIGNED
+  REJECTED
+}
+
+enum SignerStatus {
+  PENDING
+  SIGNED
+  REJECTED
+}
+
+enum SignatureType {
+  TYPED
+  DRAWN
+  IMAGE
+}
+
+
+
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String
+  documents Document[]
+  createdAt DateTime   @default(now())
+}
+
+model Document {
+  id          String         @id @default(uuid())
+  ownerId     String
+  owner       User           @relation(fields: [ownerId], references: [id])
+  originalUrl String
+  signedUrl   String?
+  status      DocumentStatus @default(PENDING)
+
+  signers     Signer[]
+  signatures  Signature[]
+  auditLogs   AuditLog[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Signer {
+  id         String       @id @default(uuid())
+  documentId String
+  document   Document     @relation(fields: [documentId], references: [id])
+  email      String
+  token      String       @unique
+  status     SignerStatus @default(PENDING)
+  signedAt   DateTime?
+
+  signature  Signature?
+
+  @@unique([documentId, email])
+}
+
+model Signature {
+  id         String         @id @default(uuid())
+  documentId String
+  signerId   String         @unique 
+
+  document   Document       @relation(fields: [documentId], references: [id])
+  signer     Signer         @relation(fields: [signerId], references: [id])
+
+  type       SignatureType
+  value      String         // text / base64 / image URL
+  x          Float          // position X on PDF
+  y          Float          // position Y on PDF
+  page       Int            // page number
+
+  createdAt DateTime        @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
+  action     String
+  ipAddress  String
+  userAgent  String
+  createdAt DateTime @default(now())
+}
