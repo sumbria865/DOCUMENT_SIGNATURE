@@ -55,19 +55,23 @@ model Document {
   updatedAt   DateTime       @updatedAt
 }
 
-model Signer {
-  id         String       @id @default(uuid())
-  documentId String
-  document   Document     @relation(fields: [documentId], references: [id])
-  email      String
-  token      String       @unique
-  status     SignerStatus @default(PENDING)
-  signedAt   DateTime?
 
-  signature  Signature?
+model Signer {
+  id              String       @id @default(uuid())
+  documentId       String
+  document         Document     @relation(fields: [documentId], references: [id])
+  email            String
+  token            String       @unique
+  status           SignerStatus @default(PENDING)
+  signedAt         DateTime?
+
+  rejectionReason  String?
+
+  signature        Signature?
 
   @@unique([documentId, email])
 }
+
 
 model Signature {
   id         String         @id @default(uuid())

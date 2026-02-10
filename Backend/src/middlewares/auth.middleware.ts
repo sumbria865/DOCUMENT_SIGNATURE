@@ -6,11 +6,7 @@ interface JwtPayload {
   email: string;
 }
 
-export const authMiddleware = (
-  req: any,
-  res: Response,
-  next: NextFunction
-) => {
+export const protect = (req: any, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -20,10 +16,7 @@ export const authMiddleware = (
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET!
-    ) as JwtPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
     req.user = decoded;
     next();
