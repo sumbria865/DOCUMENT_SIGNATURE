@@ -6,7 +6,7 @@ import {
   getDocumentsByUser,
   getDocumentByIdService,
   uploadSignedDocumentService,
-  addSignersService, // ✅ ADD THIS IMPORT
+  addSignersService,
 } from "./document.service";
 
 import { sendSignedDocumentEmail } from "../../utils/email.service";
@@ -19,18 +19,59 @@ export const createDocument = async (
   res: Response
 ) => {
   try {
+    // ✅ DEBUG LOGGING
+    console.log("=== UPLOAD REQUEST DEBUG ===");
+    console.log("req.file exists?", !!req.file);
+    console.log("req.file:", req.file);
+    console.log("File details:", req.file ? {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      encoding: req.file.encoding,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      bufferLength: req.file.buffer?.length,
+      bufferExists: !!req.file.buffer
+    } : 'NO FILE');
+    console.log("req.body:", req.body);
+    console.log("req.headers['content-type']:", req.headers['content-type']);
+    console.log("========================");
+
+    // ✅ CHECK 1: File exists
     if (!req.file) {
+      console.error("❌ No file in request");
       return res.status(400).json({ message: "PDF file is required" });
     }
 
+    // ✅ CHECK 2: Buffer exists and not empty
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      console.error("❌ Empty buffer detected!", {
+        bufferExists: !!req.file.buffer,
+        bufferLength: req.file.buffer?.length
+      });
+      return res.status(400).json({ message: "Uploaded file is empty" });
+    }
+
+    // ✅ CHECK 3: Valid PDF mimetype
+    if (req.file.mimetype !== 'application/pdf') {
+      console.error("❌ Invalid file type:", req.file.mimetype);
+      return res.status(400).json({ 
+        message: "Only PDF files are allowed",
+        received: req.file.mimetype 
+      });
+    }
+
+    console.log("✅ All validations passed, uploading document...");
+
     const document = await uploadDocument(req.user.id, req.file.buffer);
+
+    console.log("✅ Document uploaded successfully:", document.id);
 
     res.status(201).json({
       message: "Document uploaded successfully",
       document,
     });
   } catch (error: any) {
-    console.error("Error uploading document:", error);
+    console.error("❌ Error uploading document:", error);
     res.status(500).json({ message: error.message || "Internal Server Error" });
   }
 };
@@ -56,7 +97,7 @@ export const getMyDocuments = async (
 };
 
 /**
- * ✅ Get single document by ID (View Details)
+ * Get single document by ID (View Details)
  */
 export const getDocumentById = async (
   req: Request & { user?: any },
@@ -65,7 +106,7 @@ export const getDocumentById = async (
   try {
     let { id } = req.params as any;
 
-    // ✅ Fix: id can be string | string[]
+    // Fix: id can be string | string[]
     if (Array.isArray(id)) {
       id = id[0];
     }
@@ -80,7 +121,7 @@ export const getDocumentById = async (
       return res.status(404).json({ message: "Document not found" });
     }
 
-    // 🔐 Security: only owner can view
+    // Security: only owner can view
     if (document.ownerId !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -96,7 +137,7 @@ export const getDocumentById = async (
 };
 
 /**
- * ✅ Upload signed document + update + send email
+ * Upload signed document + update + send email
  */
 export const signDocument = async (
   req: Request & { file?: Express.Multer.File; user?: any },
@@ -105,7 +146,7 @@ export const signDocument = async (
   try {
     let { documentId, email } = req.body;
 
-    // ✅ Fix TypeScript: documentId could be string | string[]
+    // Fix TypeScript: documentId could be string | string[]
     if (Array.isArray(documentId)) {
       documentId = documentId[0];
     }
@@ -122,6 +163,11 @@ export const signDocument = async (
       return res
         .status(400)
         .json({ message: "Signed document file is required" });
+    }
+
+    // ✅ CHECK: Buffer exists and not empty
+    if (!req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ message: "Uploaded signed document is empty" });
     }
 
     if (!email || typeof email !== "string") {
@@ -156,14 +202,14 @@ export const signDocument = async (
 };
 
 /**
- * ✅ ADD THIS - Add signers to a document
+ * Add signers to a document
  */
 export const addSigners = async (
   req: Request & { user?: any },
   res: Response
 ) => {
   try {
-    // ✅ ADD DEBUG LOGGING
+    // ✅ DEBUG LOGGING
     console.log("=== ADD SIGNERS REQUEST ===");
     console.log("Params:", req.params);
     console.log("Body:", req.body);
@@ -231,5 +277,3 @@ export const addSigners = async (
     });
   }
 };
-
-

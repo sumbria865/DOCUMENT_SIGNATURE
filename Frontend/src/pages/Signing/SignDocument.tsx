@@ -43,7 +43,7 @@ const SignDocument = () => {
       const response = await completeSigning({
         token, // Step 4: token from URL
         type: tab === "typed" ? "TYPED" : tab === "draw" ? "DRAWN" : "IMAGE",
-        value: signatureImg, // Step 1: backend expects 'value'
+        signatureImage: signatureImg, // Step 1: backend expects 'value'
         page,
         x: position.x,
         y: position.y,

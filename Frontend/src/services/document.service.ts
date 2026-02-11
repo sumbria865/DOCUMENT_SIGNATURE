@@ -22,10 +22,12 @@ export interface Signer {
 }
 
 export const documentService = {
+  // ============================================================
+  // 📄 DOCUMENT APIs (OWNER - AUTH REQUIRED)
+  // ============================================================
+
   // ✅ Upload document
-  async uploadDocument(
-    file: File
-  ): Promise<{ message: string; document: Document }> {
+  async uploadDocument(file: File): Promise<{ message: string; document: Document }> {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -45,30 +47,8 @@ export const documentService = {
   },
 
   // ✅ Get document by ID
-  async getDocumentById(
-    id: string
-  ): Promise<{ message: string; document: Document }> {
+  async getDocumentById(id: string): Promise<{ message: string; document: Document }> {
     const response = await api.get(`/documents/${id}`);
-    return response.data;
-  },
-
-  // ✅ Sign document
-  async signDocument(
-    documentId: string,
-    file: File,
-    email: string
-  ): Promise<{ message: string; document: Document }> {
-    const formData = new FormData();
-    formData.append("documentId", documentId);
-    formData.append("file", file);
-    formData.append("email", email);
-
-    const response = await api.post("/documents/sign", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
     return response.data;
   },
 
@@ -80,40 +60,59 @@ export const documentService = {
     return response.data;
   },
 
-  // ===================================================================
-  // 👤 OWNER ACTIONS (requires authentication)
-  // ===================================================================
+// ✅ Upload signed PDF (Owner)
+async signDocument(
+  documentId: string,
+  file: File,
+  email: string
+): Promise<{ message: string; document: Document }> {
 
-  // ✅ Owner accepts signer
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("email", email);
+
+  const response = await api.post(`/documents/${documentId}/sign`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+},
+
+
+
+
+  // ============================================================
+  // 👤 OWNER ACTIONS (ACCEPT/REJECT SIGNER) - AUTH REQUIRED
+  // ============================================================
+
+  // ✅ Owner accepts signer (FIXED)
   async acceptSigner(documentId: string, signerId: string): Promise<any> {
-    const response = await api.patch(
-      `/documents/${documentId}/signers/${signerId}/accept`
+    const response = await api.post(
+      `/sign/${documentId}/signers/${signerId}/accept`
     );
     return response.data;
   },
 
-  // ✅ Owner rejects signer
-  async rejectSigner(
-    documentId: string,
-    signerId: string,
-    reason: string
-  ): Promise<any> {
-    const response = await api.patch(
-      `/documents/${documentId}/signers/${signerId}/reject`,
+  // ✅ Owner rejects signer (FIXED)
+  async rejectSigner(documentId: string, signerId: string, reason: string): Promise<any> {
+    const response = await api.post(
+      `/sign/${documentId}/signers/${signerId}/reject`,
       { reason }
     );
     return response.data;
   },
 
-  // ===================================================================
-  // 🔗 EXTERNAL SIGNER ACTIONS (token-based, no authentication)
-  // ===================================================================
+  // ============================================================
+  // 🔗 EXTERNAL SIGNER ACTIONS (TOKEN BASED - NO AUTH)
+  // ============================================================
 
   // ✅ External signer accepts via token
   async acceptSignerByToken(
     token: string,
     signatureData: {
-      type: "DRAWN" | "TYPED" | "UPLOADED";
+      type: "DRAWN" | "TYPED" | "IMAGE";
       value: string;
       x: number;
       y: number;
@@ -130,15 +129,9 @@ export const documentService = {
     return response.data;
   },
 
-  // ✅ Get document info by token (for external signers)
-  async getDocumentByToken(token: string): Promise<any> {
-    const response = await api.get(`/sign/${token}`);
-    return response.data;
-  },
-
-  // ===================================================================
+  // ============================================================
   // 📥 OTHER UTILITIES
-  // ===================================================================
+  // ============================================================
 
   // ✅ Download file as Blob
   async downloadFile(url: string): Promise<Blob> {

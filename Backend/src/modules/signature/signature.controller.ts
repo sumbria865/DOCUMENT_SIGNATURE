@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { PrismaClient, SignerStatus, DocumentStatus, SignatureType } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import prisma from "../../config/db";
 
 /**
  * Optional: verify token

@@ -1,30 +1,41 @@
-import { Router } from "express";
+import express from "express";
+import multer from "multer";
 import {
   createDocument,
   getMyDocuments,
-  signDocument,
   getDocumentById,
+  signDocument,
   addSigners,
 } from "./document.controller";
-
 import { protect } from "../../middlewares/auth.middleware";
-import { upload } from "../../middlewares/upload.middleware";
 
-const router = Router();
+const router = express.Router();
 
-// ✅ Get all documents for logged-in user
-router.get("/my", protect, getMyDocuments);
+// ✅ Multer memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only PDF files are allowed"));
+  },
+});
 
-// ✅ Get single document (View Details)
-router.get("/:id", protect, getDocumentById);
+// ✅ Correct routes (NO extra /documents here)
 
-// ✅ Upload a new PDF document
+// Upload document
 router.post("/", protect, upload.single("file"), createDocument);
 
-// ✅ Upload signed document
-router.post("/sign", protect, upload.single("file"), signDocument);
+// Get all documents of logged-in user
+router.get("/my", protect, getMyDocuments);
 
-// ✅ Add signers to a document
+// Get single document
+router.get("/:id", protect, getDocumentById);
+
+// Upload signed pdf (optional)
+router.post("/:documentId/sign", protect, upload.single("file"), signDocument);
+
+// Add signers
 router.post("/:documentId/signers", protect, addSigners);
 
 export default router;
