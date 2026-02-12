@@ -1,19 +1,21 @@
-//src/modules/signature/signature.routes.ts
 import { Router } from "express";
 import { acceptSigner, rejectSigner } from "./signature.controller";
+import { auditLog } from "../../middlewares/audit.middleware";
 
 const router = Router();
 
-// Add logging to verify route is registered
 console.log("🔧 Signature routes initialized");
 
-// Route to accept signing
-router.post("/:token/accept", (req, res, next) => {
-  console.log("🎯 Route matched! Token:", req.params.token);
-  next();
-}, acceptSigner);
+router.post(
+  "/:token/accept",
+  auditLog("SIGN_LINK_OPENED"),
+  acceptSigner
+);
 
-// Route to reject signing
-router.post("/:token/reject", rejectSigner);
+router.post(
+  "/:token/reject",
+  auditLog("SIGN_REJECTED"),
+  rejectSigner
+);
 
 export default router;

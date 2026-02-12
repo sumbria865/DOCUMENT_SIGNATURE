@@ -25,7 +25,12 @@ const SignDocument = () => {
   const [page] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Complete signing handler
+  // ✅ EDIT FEATURE: signature resize
+  const [signatureWidth, setSignatureWidth] = useState<number>(140);
+
+  /* ----------------------------------------
+     Complete signing
+  -----------------------------------------*/
   const handleComplete = async () => {
     if (!signatureImg || !position) {
       alert("Please drag and place your signature before completing.");
@@ -40,25 +45,19 @@ const SignDocument = () => {
     setLoading(true);
 
     try {
-      const response = await completeSigning({
-        token, // Step 4: token from URL
+      await completeSigning({
+        token,
         type: tab === "typed" ? "TYPED" : tab === "draw" ? "DRAWN" : "IMAGE",
-        signatureImage: signatureImg, // Step 1: backend expects 'value'
+        signatureImage: signatureImg,
         page,
         x: position.x,
         y: position.y,
       });
 
-      console.log("Signing successful:", response);
       navigate("/sign-complete");
     } catch (err: any) {
       console.error("Signing error:", err.response || err);
-
-      if (err.response?.status === 404) {
-        alert("Document not found! Check your link or token.");
-      } else {
-        alert("Signing failed. Please try again.");
-      }
+      alert("Signing failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -66,15 +65,19 @@ const SignDocument = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* LEFT – Document Preview with live signature */}
+      
+      {/* LEFT – Document preview area */}
       <div className="border rounded-lg h-[500px] relative bg-gray-50 overflow-hidden">
         {signatureImg ? (
           <SignatureDraggable
             src={signatureImg}
             onPositionChange={(x, y) => setPosition({ x, y })}
             style={{
-              width: tab === "typed" ? 120 : 150, // optional: size based on type
-              height: tab === "typed" ? 40 : 80,
+              width: signatureWidth,
+              height:
+                tab === "typed"
+                  ? signatureWidth / 3
+                  : signatureWidth / 2,
             }}
           />
         ) : (
@@ -84,7 +87,7 @@ const SignDocument = () => {
         )}
       </div>
 
-      {/* RIGHT – Signature Options */}
+      {/* RIGHT – Controls */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Add your signature</h2>
 
@@ -92,8 +95,8 @@ const SignDocument = () => {
           value={tab}
           onValueChange={(v) => {
             setTab(v as any);
-            setSignatureImg(null); // Step 3: reset signature when switching tabs
-            setPosition(null);     // Step 3: reset position
+            setSignatureImg(null);
+            setPosition(null);
           }}
         >
           <TabsList className="grid grid-cols-3 mb-4">
@@ -102,27 +105,37 @@ const SignDocument = () => {
             <TabsTrigger value="upload">Upload</TabsTrigger>
           </TabsList>
 
-          {/* TYPED */}
           <TabsContent value="typed">
-            <TypedSignature
-              onConfirm={(img) => setSignatureImg(img)}
-              onCancel={() => setSignatureImg(null)}
-            />
+            <TypedSignature onConfirm={setSignatureImg} />
           </TabsContent>
 
-          {/* DRAW */}
           <TabsContent value="draw">
-            <DrawSignature
-              onConfirm={(img) => setSignatureImg(img)}
-              onCancel={() => setSignatureImg(null)}
-            />
+            <DrawSignature onConfirm={setSignatureImg} />
           </TabsContent>
 
-          {/* UPLOAD */}
           <TabsContent value="upload">
             <UploadSignature onChange={setSignatureImg} />
           </TabsContent>
         </Tabs>
+
+        {/* ✅ Resize slider */}
+        {signatureImg && (
+          <div className="mt-4">
+            <label className="text-sm text-gray-600 block mb-1">
+              Resize signature
+            </label>
+            <input
+              type="range"
+              min={80}
+              max={250}
+              value={signatureWidth}
+              onChange={(e) =>
+                setSignatureWidth(Number(e.target.value))
+              }
+              className="w-full"
+            />
+          </div>
+        )}
 
         <Button
           className="mt-6 w-full"

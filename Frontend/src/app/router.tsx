@@ -16,14 +16,16 @@ import { DocumentDetails } from "../pages/Documents/DocumentDetails";
 import SignDocument from "../pages/Signing/SignDocument";
 import SignComplete from "../pages/Signing/SignComplete";
 
-// ✅ Protected Route
+/* ===========================
+   🔐 PROTECTED ROUTE
+=========================== */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
       </div>
     );
   }
@@ -35,14 +37,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ✅ Public Route (login/register only)
+/* ===========================
+   🌐 PUBLIC ROUTE (AUTH PAGES)
+=========================== */
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
       </div>
     );
   }
@@ -54,7 +58,9 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ✅ Layout
+/* ===========================
+   🧱 APP LAYOUT
+=========================== */
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -65,13 +71,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+/* ===========================
+   🚦 ROUTER
+=========================== */
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <Navigate to="/dashboard" replace />,
   },
 
-  // 🔐 AUTH
+  /* ---------- AUTH ---------- */
   {
     path: "/login",
     element: (
@@ -93,7 +102,7 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // 📊 DASHBOARD
+  /* ---------- DASHBOARD ---------- */
   {
     path: "/dashboard",
     element: (
@@ -105,7 +114,7 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // 📄 DOCUMENTS
+  /* ---------- DOCUMENTS ---------- */
   {
     path: "/documents",
     element: (
@@ -137,21 +146,13 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // ✍️ SIGNING (PUBLIC — NO AUTH)
+  /* ---------- ✍️ PUBLIC SIGNING (NO LAYOUT, NO AUTH) ---------- */
   {
     path: "/sign/:token",
-    element: (
-      <Layout>
-        <SignDocument />
-      </Layout>
-    ),
+    element: <SignDocument />,
   },
   {
     path: "/sign-complete",
-    element: (
-      <Layout>
-        <SignComplete />
-      </Layout>
-    ),
+    element: <SignComplete />,
   },
 ]);
