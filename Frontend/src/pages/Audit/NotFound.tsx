@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Home, ArrowLeft } from 'lucide-react';
 
@@ -12,7 +11,8 @@ export const NotFound = () => {
             Page Not Found
           </h2>
           <p className="text-gray-600 max-w-md mx-auto mb-8">
-            Oops! The page you're looking for doesn't exist. It might have been moved or deleted.
+            Oops! The page you're looking for doesn't exist. It might have been
+            moved or deleted.
           </p>
         </div>
 
@@ -20,10 +20,11 @@ export const NotFound = () => {
           <Button
             variant="primary"
             icon={<Home className="w-4 h-4" />}
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => (window.location.href = '/dashboard')}
           >
             Go to Dashboard
           </Button>
+
           <Button
             variant="secondary"
             icon={<ArrowLeft className="w-4 h-4" />}

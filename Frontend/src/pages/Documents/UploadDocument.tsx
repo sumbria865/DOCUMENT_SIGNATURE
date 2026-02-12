@@ -58,7 +58,8 @@ export const UploadDocument = () => {
     setIsUploading(true);
 
     try {
-      const response = await documentService.uploadDocument(file);
+      await documentService.uploadDocument(file);
+
       toast.success('Document uploaded successfully!');
       navigate('/documents');
     } catch (error: any) {

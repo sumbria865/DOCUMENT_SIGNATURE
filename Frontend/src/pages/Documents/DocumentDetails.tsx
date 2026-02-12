@@ -308,9 +308,8 @@ export const DocumentDetails = () => {
               {document.signers && document.signers.length > 0 ? (
                 <div className="space-y-3">
                   {document.signers.map((signer) => {
-                    const isPending = signer.status === "PENDING";
-                    const isSigned = signer.status === "SIGNED";
-                    const isRejected = signer.status === "REJECTED";
+                   
+                   const isPending = signer.status === "PENDING";
 
                     const isUpdating = updatingSignerId === signer.id;
 

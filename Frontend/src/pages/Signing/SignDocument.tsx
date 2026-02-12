@@ -65,7 +65,6 @@ const SignDocument = () => {
 
   return (
     <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-      
       {/* LEFT – Document preview area */}
       <div className="border rounded-lg h-[500px] relative bg-gray-50 overflow-hidden">
         {signatureImg ? (
@@ -74,10 +73,7 @@ const SignDocument = () => {
             onPositionChange={(x, y) => setPosition({ x, y })}
             style={{
               width: signatureWidth,
-              height:
-                tab === "typed"
-                  ? signatureWidth / 3
-                  : signatureWidth / 2,
+              height: tab === "typed" ? signatureWidth / 3 : signatureWidth / 2,
             }}
           />
         ) : (
@@ -93,8 +89,8 @@ const SignDocument = () => {
 
         <Tabs
           value={tab}
-          onValueChange={(v) => {
-            setTab(v as any);
+          onValueChange={(v: "typed" | "draw" | "upload") => {
+            setTab(v);
             setSignatureImg(null);
             setPosition(null);
           }}
@@ -106,11 +102,17 @@ const SignDocument = () => {
           </TabsList>
 
           <TabsContent value="typed">
-            <TypedSignature onConfirm={setSignatureImg} />
+            <TypedSignature
+              onConfirm={setSignatureImg}
+              onCancel={() => setSignatureImg(null)}
+            />
           </TabsContent>
 
           <TabsContent value="draw">
-            <DrawSignature onConfirm={setSignatureImg} />
+            <DrawSignature
+              onConfirm={setSignatureImg}
+              onCancel={() => setSignatureImg(null)}
+            />
           </TabsContent>
 
           <TabsContent value="upload">
@@ -129,9 +131,7 @@ const SignDocument = () => {
               min={80}
               max={250}
               value={signatureWidth}
-              onChange={(e) =>
-                setSignatureWidth(Number(e.target.value))
-              }
+              onChange={(e) => setSignatureWidth(Number(e.target.value))}
               className="w-full"
             />
           </div>
