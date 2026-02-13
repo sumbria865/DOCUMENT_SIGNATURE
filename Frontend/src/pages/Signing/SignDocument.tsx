@@ -89,8 +89,8 @@ const SignDocument = () => {
 
         <Tabs
           value={tab}
-          onValueChange={(v: "typed" | "draw" | "upload") => {
-            setTab(v);
+          onValueChange={(v: string) => {
+            setTab(v as "typed" | "draw" | "upload");
             setSignatureImg(null);
             setPosition(null);
           }}
