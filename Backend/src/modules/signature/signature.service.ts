@@ -89,10 +89,9 @@ export const completeSigning = async (data: any, req: any) => {
   await prisma.auditLog.create({
     data: {
       documentId: signer.documentId,
-       action: `SIGNER_SIGNED (${signer.email})`
-
+      action: `SIGNER_SIGNED (${signer.email})`,
       ipAddress: req.ip || "UNKNOWN",
-      userAgent: req.headers["user-agent"] || "UNKNOWN"
+      userAgent: req.headers["user-agent"] || "UNKNOWN",
     }
   });
 
