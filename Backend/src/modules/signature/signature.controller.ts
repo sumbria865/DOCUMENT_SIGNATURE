@@ -8,8 +8,8 @@ import prisma from "../../config/db";
  * Optional: verify token
  */
 export const verifySignerToken = async (req: Request, res: Response) => {
-  const { token } = req.params;
-  
+  const token = req.params.token as string;
+
   if (!token) {
     return res.status(400).json({ message: "Token is required" });
   }
@@ -39,7 +39,7 @@ export const acceptSigner = async (req: Request, res: Response) => {
   console.log("Token:", req.params.token);
   console.log("Body:", req.body);
 
-  const { token } = req.params;
+  const token = req.params.token as string;
   const { type, value, x, y, page } = req.body;
 
   try {
@@ -96,10 +96,10 @@ export const acceptSigner = async (req: Request, res: Response) => {
       data: { status: newDocumentStatus },
     });
 
-    return res.status(200).json({ 
-      message: "Signer accepted.", 
+    return res.status(200).json({
+      message: "Signer accepted.",
       signature,
-      documentStatus: newDocumentStatus 
+      documentStatus: newDocumentStatus,
     });
   } catch (error) {
     console.error("❌ Error in acceptSigner:", error);
@@ -111,7 +111,7 @@ export const acceptSigner = async (req: Request, res: Response) => {
  * Reject a signer for a document using token
  */
 export const rejectSigner = async (req: Request, res: Response) => {
-  const { token } = req.params;
+  const token = req.params.token as string;
   const { reason } = req.body;
 
   try {
@@ -131,9 +131,9 @@ export const rejectSigner = async (req: Request, res: Response) => {
     // Update signer status to REJECTED
     await prisma.signer.update({
       where: { id: signer.id },
-      data: { 
-        status: SignerStatus.REJECTED, 
-        rejectionReason: reason || "No reason provided" 
+      data: {
+        status: SignerStatus.REJECTED,
+        rejectionReason: reason || "No reason provided",
       },
     });
 
