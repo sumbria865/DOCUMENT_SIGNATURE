@@ -16,6 +16,8 @@ import { formatRelativeTime } from "../../utils/formatDate";
 import toast from "react-hot-toast";
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://back-sign-5trk.onrender.com/api';
+
 type PendingSignerToken = {
   email: string;
   documentId: string;
@@ -73,7 +75,7 @@ export const Dashboard = () => {
     try {
       setLoadingTokens(true);
 
-      const res = await axios.get("http://localhost:5000/api/sign/test-tokens");
+      const res = await axios.get(`${API_BASE_URL}/sign/test-tokens`);
 
       setPendingTokens(res.data.signers || []);
     } catch (error) {
