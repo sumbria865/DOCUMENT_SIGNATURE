@@ -19,12 +19,10 @@ export interface CompleteSigningPayload {
 }
 
 /* =========================
-   VERIFY SIGNER TOKEN (NEW)
+   VERIFY SIGNER TOKEN
 ========================= */
-// ✅ Used to validate public signing link
-// ✅ Called when /sign/:token page loads
 export const verifySignerToken = async (token: string) => {
-  const url = `${API_BASE_URL}/api/sign/${token}/verify`;
+  const url = `${API_BASE_URL}/sign/${token}/verify`;
 
   try {
     const res = await axios.get(url);
@@ -39,20 +37,17 @@ export const verifySignerToken = async (token: string) => {
 };
 
 /* =========================
-   COMPLETE SIGNING (UNCHANGED)
+   COMPLETE SIGNING
 ========================= */
 export const completeSigning = async (data: CompleteSigningPayload) => {
-  const url = `${API_BASE_URL}/api/sign/${data.token}/accept`;
+  const url = `${API_BASE_URL}/sign/${data.token}/accept`;
 
   console.log("Calling API:", url, data);
 
   try {
     const res = await axios.post(url, {
       type: data.type,
-
-      // ✅ IMPORTANT FIX (kept exactly as-is)
       signatureImage: data.signatureImage,
-
       page: data.page,
       x: data.x,
       y: data.y,
