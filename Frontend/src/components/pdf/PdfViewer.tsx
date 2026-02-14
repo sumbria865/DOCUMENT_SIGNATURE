@@ -8,8 +8,9 @@ import toast from "react-hot-toast";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// Updated worker configuration
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// ✅ CORRECT FIX for react-pdf v9 + Vite
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 type Props = {
   url: string;
@@ -45,7 +46,6 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
   const zoomIn = () => setScale((s) => Math.min(2.2, s + 0.1));
   const zoomOut = () => setScale((s) => Math.max(0.6, s - 0.1));
 
-  // ✅ Download PDF safely with correct file name
   const downloadPdf = async () => {
     try {
       const response = await fetch(safeUrl, { mode: "cors" });
@@ -126,7 +126,13 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
             </div>
           }
         >
-          <Page pageNumber={pageNumber} scale={scale} renderTextLayer renderAnnotationLayer loading={<div />} />
+          <Page
+            pageNumber={pageNumber}
+            scale={scale}
+            renderTextLayer
+            renderAnnotationLayer
+            loading={<div />}
+          />
         </Document>
       </div>
     </div>

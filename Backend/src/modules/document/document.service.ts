@@ -11,7 +11,8 @@ export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
     const uploadResult = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
-          { resource_type: "raw", folder: "documents" },
+          // ✅ FIXED: changed raw to auto
+          { resource_type: "auto", folder: "documents", format: "pdf" },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -28,7 +29,6 @@ export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
       },
     });
 
-    // ✅ AUDIT LOG: Document created
     await prisma.auditLog.create({
       data: {
         documentId: document.id,
@@ -63,8 +63,7 @@ export const getDocumentsByUser = async (ownerId: string) => {
 };
 
 /**
- * ✅ Get document by ID (for View Details page)
- * Includes signers + audit logs
+ * Get document by ID
  */
 export const getDocumentByIdService = async (id: string) => {
   try {
@@ -86,7 +85,7 @@ export const getDocumentByIdService = async (id: string) => {
 };
 
 /**
- * ✅ Upload signed PDF + update document signedUrl + status
+ * Upload signed PDF + update document signedUrl + status
  */
 export const uploadSignedDocumentService = async (
   documentId: string,
@@ -96,7 +95,8 @@ export const uploadSignedDocumentService = async (
     const uploadResult = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
-          { resource_type: "raw", folder: "signed-documents" },
+          // ✅ FIXED: changed raw to auto
+          { resource_type: "auto", folder: "signed-documents", format: "pdf" },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -113,7 +113,6 @@ export const uploadSignedDocumentService = async (
       },
     });
 
-    // ✅ AUDIT LOG: Document signed
     await prisma.auditLog.create({
       data: {
         documentId,
@@ -131,7 +130,7 @@ export const uploadSignedDocumentService = async (
 };
 
 /**
- * ✅ Add signers to a document
+ * Add signers to a document
  */
 export const addSignersService = async (
   documentId: string,
@@ -139,38 +138,28 @@ export const addSignersService = async (
   ownerId: string
 ) => {
   try {
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = emails.filter(
       (email) => !emailRegex.test(email.trim())
     );
 
     if (invalidEmails.length > 0) {
-      throw new Error(
-        `Invalid email format: ${invalidEmails.join(", ")}`
-      );
+      throw new Error(`Invalid email format: ${invalidEmails.join(", ")}`);
     }
 
-    // Check document ownership
     const document = await prisma.document.findUnique({
       where: { id: documentId },
       include: { signers: true },
     });
 
-    if (!document) {
-      throw new Error("Document not found");
-    }
+    if (!document) throw new Error("Document not found");
 
     if (document.ownerId !== ownerId) {
       throw new Error("You do not have permission to add signers");
     }
 
-    // Prevent duplicate signers
-    const existingEmails = document.signers.map((s) =>
-      s.email.toLowerCase()
-    );
+    const existingEmails = document.signers.map((s) => s.email.toLowerCase());
     const newEmails = emails.map((e) => e.trim().toLowerCase());
-
     const duplicates = newEmails.filter((email) =>
       existingEmails.includes(email)
     );
@@ -181,7 +170,6 @@ export const addSignersService = async (
       );
     }
 
-    // Create signers
     const signersData = newEmails.map((email) => ({
       documentId,
       email,
@@ -195,27 +183,21 @@ export const addSignersService = async (
       )
     );
 
-    // ✅ DEBUG LOGS (kept as-is)
     console.log("\n" + "=".repeat(80));
     console.log("📧 SIGNERS CREATED - SIGNING LINKS:");
     console.log("=".repeat(80));
     createdSigners.forEach((signer, index) => {
       console.log(`\n[${index + 1}] Email: ${signer.email}`);
       console.log(`    Token: ${signer.token}`);
-      console.log(
-        `    Signing URL: http://localhost:3000/sign/${signer.token}`
-      );
+      console.log(`    Signing URL: http://localhost:3000/sign/${signer.token}`);
       console.log("-".repeat(80));
     });
     console.log("=".repeat(80) + "\n");
 
-    // ✅ AUDIT LOG: Signers added
     await prisma.auditLog.create({
       data: {
         documentId,
-        action: `SIGNERS_ADDED (${createdSigners.length}): ${newEmails.join(
-          ", "
-        )}`,
+        action: `SIGNERS_ADDED (${createdSigners.length}): ${newEmails.join(", ")}`,
         ipAddress: "system",
         userAgent: "system",
       },

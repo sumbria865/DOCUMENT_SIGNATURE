@@ -12,7 +12,7 @@ export default defineConfig({
 
   build: {
     outDir: "dist",
-    souremap: true,
+    sourcemap: true,
   },
 
   // ✅ Helps react-pdf / pdfjs worker
