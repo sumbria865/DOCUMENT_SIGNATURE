@@ -15,9 +15,9 @@ export default defineConfig({
     sourcemap: true,
   },
 
-  // ✅ Helps react-pdf / pdfjs worker
   optimizeDeps: {
     include: ["pdfjs-dist"],
+    exclude: ["pdfjs-dist/build/pdf.worker.min.mjs"],
   },
 
   resolve: {
