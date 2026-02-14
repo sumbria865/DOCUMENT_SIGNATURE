@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import fetch from "node-fetch";
 import prisma from "../../config/db";
 import {
   createDocument,
@@ -33,12 +32,9 @@ router.post(
 );
 
 router.get("/my", protect, getMyDocuments);
-router.get("/:id", protect, getDocumentById);
-router.post("/:documentId/sign", protect, upload.single("file"), signDocument);
-router.post("/:documentId/signers", protect, addSigners);
 
-// ✅ NEW: Proxy route to serve PDF without CORS issues
-router.get("/:id/file", protect, async (req, res): Promise<void> => {
+// ✅ MUST be before /:id route so Express doesn't swallow it
+router.get("/:id/file", async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
       where: { id: req.params.id },
@@ -74,5 +70,10 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
     res.status(500).json({ message: "Failed to fetch file" });
   }
 });
+
+// ✅ This comes AFTER /:id/file
+router.get("/:id", protect, getDocumentById);
+router.post("/:documentId/sign", protect, upload.single("file"), signDocument);
+router.post("/:documentId/signers", protect, addSigners);
 
 export default router;
