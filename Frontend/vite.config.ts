@@ -1,9 +1,21 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // ✅ Copies pdf worker to dist folder during production build
+    viteStaticCopy({
+      targets: [
+        {
+          src: "node_modules/pdfjs-dist/build/pdf.worker.min.mjs",
+          dest: "",
+        },
+      ],
+    }),
+  ],
 
   server: {
     port: 3000,
