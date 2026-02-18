@@ -3,16 +3,18 @@ import cloudinary from "../../config/cloudinary";
 import crypto from "crypto";
 import { DocumentStatus } from "@prisma/client";
 
-/**
- * Upload a PDF document to Cloudinary and save metadata in DB
- */
 export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
   try {
     const uploadResult = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
-          // ✅ FIXED: changed raw to auto
-          { resource_type: "auto", folder: "documents", format: "pdf" },
+          {
+            resource_type: "raw",
+            folder: "documents",
+            format: "pdf",
+            type: "upload",
+            access_mode: "public",
+          },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -45,16 +47,12 @@ export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
   }
 };
 
-/**
- * Fetch all documents uploaded by a specific user
- */
 export const getDocumentsByUser = async (ownerId: string) => {
   try {
     const documents = await prisma.document.findMany({
       where: { ownerId },
       orderBy: { createdAt: "desc" },
     });
-
     return documents;
   } catch (error) {
     console.error("Error fetching documents:", error);
@@ -62,9 +60,6 @@ export const getDocumentsByUser = async (ownerId: string) => {
   }
 };
 
-/**
- * Get document by ID
- */
 export const getDocumentByIdService = async (id: string) => {
   try {
     const document = await prisma.document.findUnique({
@@ -76,7 +71,6 @@ export const getDocumentByIdService = async (id: string) => {
         },
       },
     });
-
     return document;
   } catch (error) {
     console.error("Error fetching document:", error);
@@ -84,9 +78,6 @@ export const getDocumentByIdService = async (id: string) => {
   }
 };
 
-/**
- * Upload signed PDF + update document signedUrl + status
- */
 export const uploadSignedDocumentService = async (
   documentId: string,
   fileBuffer: Buffer
@@ -95,8 +86,13 @@ export const uploadSignedDocumentService = async (
     const uploadResult = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
-          // ✅ FIXED: changed raw to auto
-          { resource_type: "auto", folder: "signed-documents", format: "pdf" },
+          {
+            resource_type: "raw",
+            folder: "signed-documents",
+            format: "pdf",
+            type: "upload",
+            access_mode: "public",
+          },
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -129,9 +125,6 @@ export const uploadSignedDocumentService = async (
   }
 };
 
-/**
- * Add signers to a document
- */
 export const addSignersService = async (
   documentId: string,
   emails: string[],
