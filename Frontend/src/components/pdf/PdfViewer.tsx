@@ -8,7 +8,6 @@ import toast from "react-hot-toast";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-// ✅ CORRECT FIX for react-pdf v9 + Vite
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
@@ -22,12 +21,43 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.1);
   const [loading, setLoading] = useState(true);
+  const [pdfBlob, setPdfBlob] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const safeUrl = useMemo(() => url?.trim() || "", [url]);
 
+  // Fetch PDF as blob to avoid redirect issues with react-pdf
   useEffect(() => {
+    if (!safeUrl) return;
+
     setPageNumber(1);
     setLoading(true);
+    setFetchError(null);
+    setPdfBlob(null);
+
+    const token = localStorage.getItem("token");
+
+    fetch(safeUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        setPdfBlob(objectUrl);
+      })
+      .catch((err) => {
+        console.error("PDF Fetch Error:", err);
+        setFetchError(err.message || "Failed to load PDF");
+        setLoading(false);
+      });
+
+    // Cleanup blob URL on unmount or url change
+    return () => {
+      if (pdfBlob) URL.revokeObjectURL(pdfBlob);
+    };
   }, [safeUrl]);
 
   const onLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -48,7 +78,10 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
 
   const downloadPdf = async () => {
     try {
-      const response = await fetch(safeUrl, { mode: "cors" });
+      const token = localStorage.getItem("token");
+      const response = await fetch(safeUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) throw new Error("Failed to fetch PDF");
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
@@ -70,6 +103,15 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
     return (
       <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 text-center text-gray-600">
         <p className="text-sm">No PDF URL provided</p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 text-center">
+        <p className="text-red-600 mb-2">Failed to load PDF</p>
+        <p className="text-sm text-gray-600">{fetchError}</p>
       </div>
     );
   }
@@ -110,7 +152,7 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
           </div>
         )}
         <Document
-          file={safeUrl}
+          file={pdfBlob}
           onLoadSuccess={onLoadSuccess}
           onLoadError={onLoadError}
           loading={<div />}
