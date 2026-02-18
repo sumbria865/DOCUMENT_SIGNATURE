@@ -22,7 +22,7 @@ const upload = multer({
   },
 });
 
-// ✅ Upload document + audit
+// Upload document + audit
 router.post(
   "/",
   protect,
@@ -33,7 +33,7 @@ router.post(
 
 router.get("/my", protect, getMyDocuments);
 
-// ✅ MUST be before /:id route so Express doesn't swallow it
+// Serve original or signed PDF — redirect to Cloudinary public URL
 router.get("/:id/file", async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -52,10 +52,48 @@ router.get("/:id/file", async (req, res): Promise<void> => {
       return;
     }
 
+    // Redirect to Cloudinary public URL directly
+    res.redirect(fileUrl);
+  } catch (err: any) {
+    console.error("File route error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Proxy route — streams PDF through backend (use if redirect doesn't work in PDF viewer)
+router.get("/:id/signed-file", async (req, res): Promise<void> => {
+  try {
+    const doc = await prisma.document.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!doc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    const fileUrl = doc.signedUrl || doc.originalUrl;
+
+    // ✅ ADD THESE TWO LINES
+    console.log("📄 originalUrl:", doc.originalUrl);
+    console.log("📄 signedUrl:", doc.signedUrl);
+    console.log("📄 Using fileUrl:", fileUrl);
+
+    if (!fileUrl) {
+      res.status(404).json({ message: "File URL not found" });
+      return;
+    }
+
     const response = await fetch(fileUrl);
 
     if (!response.ok) {
-      res.status(500).json({ message: "Failed to fetch file from Cloudinary" });
+      // ✅ ADD THIS
+      console.error("❌ Cloudinary fetch failed:", response.status, response.statusText, "URL:", fileUrl);
+      res.status(500).json({ 
+        message: "Failed to fetch file from Cloudinary",
+        cloudinaryStatus: response.status,
+        url: fileUrl  // ✅ shows the actual URL in browser
+      });
       return;
     }
 
@@ -65,13 +103,14 @@ router.get("/:id/file", async (req, res): Promise<void> => {
     res.setHeader("Content-Disposition", "inline");
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.send(Buffer.from(buffer));
-  } catch (err) {
+  } catch (err: any) {
     console.error("Proxy file error:", err);
-    res.status(500).json({ message: "Failed to fetch file" });
+    res.status(500).json({ message: err.message });
   }
 });
 
-// ✅ This comes AFTER /:id/file
+
+// These come AFTER the specific routes above
 router.get("/:id", protect, getDocumentById);
 router.post("/:documentId/sign", protect, upload.single("file"), signDocument);
 router.post("/:documentId/signers", protect, addSigners);
