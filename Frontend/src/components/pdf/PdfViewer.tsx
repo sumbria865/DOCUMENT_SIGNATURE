@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "../ui/Button";
 import { Loader } from "../ui/Loader";
-import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import {
+  ZoomIn,
+  ZoomOut,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -26,16 +32,18 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
 
   const safeUrl = useMemo(() => url?.trim() || "", [url]);
 
-  // Fetch PDF as blob to avoid redirect issues with react-pdf
+  // Fetch PDF as blob so react-pdf works smoothly
   useEffect(() => {
     if (!safeUrl) return;
 
     setPageNumber(1);
+    setNumPages(0);
     setLoading(true);
     setFetchError(null);
     setPdfBlob(null);
 
     const token = localStorage.getItem("token");
+    let objectUrl = "";
 
     fetch(safeUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -45,7 +53,7 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
         return res.blob();
       })
       .then((blob) => {
-        const objectUrl = URL.createObjectURL(blob);
+        objectUrl = URL.createObjectURL(blob);
         setPdfBlob(objectUrl);
       })
       .catch((err) => {
@@ -54,9 +62,9 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
         setLoading(false);
       });
 
-    // Cleanup blob URL on unmount or url change
+    // ✅ Cleanup blob URL properly
     return () => {
-      if (pdfBlob) URL.revokeObjectURL(pdfBlob);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [safeUrl]);
 
@@ -79,10 +87,13 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
   const downloadPdf = async () => {
     try {
       const token = localStorage.getItem("token");
+
       const response = await fetch(safeUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!response.ok) throw new Error("Failed to fetch PDF");
+
+      if (!response.ok) throw new Error(`Failed to fetch PDF (${response.status})`);
+
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
 
@@ -92,6 +103,7 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+
       window.URL.revokeObjectURL(blobUrl);
     } catch (err: any) {
       console.error("Download Error:", err);
@@ -120,13 +132,25 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-b bg-gray-50">
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={prevPage} disabled={pageNumber <= 1}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={prevPage}
+            disabled={pageNumber <= 1}
+          >
             <ChevronLeft className="w-4 h-4" />
           </Button>
+
           <div className="text-sm font-medium text-gray-700 min-w-[100px] text-center">
             Page {pageNumber} / {numPages || "?"}
           </div>
-          <Button variant="secondary" size="sm" onClick={nextPage} disabled={numPages === 0 || pageNumber >= numPages}>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={nextPage}
+            disabled={numPages === 0 || pageNumber >= numPages}
+          >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
@@ -135,11 +159,21 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
           <Button variant="secondary" size="sm" onClick={zoomOut}>
             <ZoomOut className="w-4 h-4" />
           </Button>
-          <div className="text-sm text-gray-600 w-16 text-center">{Math.round(scale * 100)}%</div>
+
+          <div className="text-sm text-gray-600 w-16 text-center">
+            {Math.round(scale * 100)}%
+          </div>
+
           <Button variant="secondary" size="sm" onClick={zoomIn}>
             <ZoomIn className="w-4 h-4" />
           </Button>
-          <Button variant="primary" size="sm" onClick={downloadPdf} icon={<Download className="w-4 h-4" />}>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={downloadPdf}
+            icon={<Download className="w-4 h-4" />}
+          >
             Download
           </Button>
         </div>
@@ -151,6 +185,7 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
             <Loader text="Loading PDF..." />
           </div>
         )}
+
         <Document
           file={pdfBlob}
           onLoadSuccess={onLoadSuccess}
@@ -159,7 +194,9 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
           error={
             <div className="text-center py-12">
               <p className="text-red-600 mb-2">Failed to load PDF</p>
-              <p className="text-sm text-gray-600">Please check your internet connection or try again later.</p>
+              <p className="text-sm text-gray-600">
+                Please check your internet connection or try again later.
+              </p>
             </div>
           }
           noData={

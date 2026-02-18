@@ -33,6 +33,7 @@ export const DocumentDetails = () => {
   useEffect(() => {
     if (!id) return;
     fetchDocument();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchDocument = async () => {
@@ -50,14 +51,17 @@ export const DocumentDetails = () => {
 
   const handleAddSigners = async () => {
     if (!document) return;
+
     const emailList = emails
       .split(",")
       .map((e) => e.trim())
       .filter(Boolean);
+
     if (emailList.length === 0) {
       toast.error("Please enter at least 1 email");
       return;
     }
+
     try {
       setIsAddingSigners(true);
       await documentService.addSigners(document.id, emailList);
@@ -78,9 +82,12 @@ export const DocumentDetails = () => {
         toast.error("Original file not found");
         return;
       }
+
       setIsDownloadingOriginal(true);
+
       const originalFileName = `document-${document.id}.pdf`;
       const blob = await documentService.downloadFile(document.originalUrl);
+
       const url = window.URL.createObjectURL(blob);
       const a = window.document.createElement("a");
       a.href = url;
@@ -89,6 +96,7 @@ export const DocumentDetails = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
       toast.success("Original PDF downloaded");
     } catch (error: any) {
       console.error("Download original error:", error);
@@ -100,6 +108,7 @@ export const DocumentDetails = () => {
 
   const handleAcceptSigner = async (signerId: string) => {
     if (!document) return;
+
     try {
       setUpdatingSignerId(signerId);
       await documentService.acceptSigner(document.id, signerId);
@@ -107,7 +116,9 @@ export const DocumentDetails = () => {
       await fetchDocument();
     } catch (error: any) {
       console.error("Accept signer error:", error);
-      toast.error(error.response?.data?.message || "Failed to mark signer as signed");
+      toast.error(
+        error.response?.data?.message || "Failed to mark signer as signed"
+      );
     } finally {
       setUpdatingSignerId(null);
     }
@@ -115,11 +126,13 @@ export const DocumentDetails = () => {
 
   const handleRejectSigner = async (signerId: string) => {
     if (!document) return;
+
     const reason = window.prompt("Enter rejection reason:");
     if (!reason || reason.trim().length < 3) {
       toast.error("Rejection reason is required (min 3 characters)");
       return;
     }
+
     try {
       setUpdatingSignerId(signerId);
       await documentService.rejectSigner(document.id, signerId, reason);
@@ -135,6 +148,7 @@ export const DocumentDetails = () => {
 
   const handleDownloadSigned = () => {
     if (!document?.signedUrl) return;
+
     const link = window.document.createElement("a");
     link.href = document.signedUrl;
     link.download = `document-${document.id}-signed.pdf`;
@@ -165,7 +179,8 @@ export const DocumentDetails = () => {
     );
   }
 
-  const pdfUrl = `${API_BASE_URL}/api/documents/${document.id}/file`;
+  // ✅ IMPORTANT: Use proxy route instead of redirect route
+  const pdfUrl = `${API_BASE_URL}/api/documents/${document.id}/signed-file`;
   const originalFileName = `document-${document.id}.pdf`;
 
   return (
@@ -181,6 +196,7 @@ export const DocumentDetails = () => {
                 Back
               </Button>
             </Link>
+
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
                 Document Details
@@ -190,6 +206,7 @@ export const DocumentDetails = () => {
               </p>
             </div>
           </div>
+
           <Badge status={document.status} />
         </div>
 
@@ -203,6 +220,7 @@ export const DocumentDetails = () => {
                   Preview PDF
                 </h2>
               </div>
+
               <div className="flex items-center space-x-2">
                 <Button
                   variant="secondary"
@@ -210,10 +228,11 @@ export const DocumentDetails = () => {
                   onClick={handleDownloadOriginal}
                   disabled={isDownloadingOriginal}
                 >
-                  {isDownloadingOriginal ? "Downloading..." : "Download Original"}
+                  {isDownloadingOriginal
+                    ? "Downloading..."
+                    : "Download Original"}
                 </Button>
 
-                {/* ✅ FIXED: no <a> tag, using button handler instead */}
                 {document.signedUrl && (
                   <Button
                     variant="primary"
@@ -234,51 +253,75 @@ export const DocumentDetails = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Document Info
             </h2>
+
             <div className="space-y-3 text-sm">
               <div>
                 <p className="text-gray-500">Document ID</p>
-                <p className="font-medium text-gray-900 break-all">{document.id}</p>
+                <p className="font-medium text-gray-900 break-all">
+                  {document.id}
+                </p>
               </div>
+
               <div>
                 <p className="text-gray-500">Owner ID</p>
-                <p className="font-medium text-gray-900 break-all">{document.ownerId}</p>
+                <p className="font-medium text-gray-900 break-all">
+                  {document.ownerId}
+                </p>
               </div>
+
               <div>
                 <p className="text-gray-500">Created At</p>
-                <p className="font-medium text-gray-900">{formatDate(document.createdAt)}</p>
+                <p className="font-medium text-gray-900">
+                  {formatDate(document.createdAt)}
+                </p>
               </div>
+
               <div>
                 <p className="text-gray-500">Updated At</p>
-                <p className="font-medium text-gray-900">{formatDate(document.updatedAt)}</p>
+                <p className="font-medium text-gray-900">
+                  {formatDate(document.updatedAt)}
+                </p>
               </div>
             </div>
 
             {/* SIGNERS */}
             <div className="mt-8">
-              <h3 className="text-md font-semibold text-gray-900 mb-3">Signers</h3>
+              <h3 className="text-md font-semibold text-gray-900 mb-3">
+                Signers
+              </h3>
+
               {document.signers && document.signers.length > 0 ? (
                 <div className="space-y-3">
                   {document.signers.map((signer) => {
                     const isPending = signer.status === "PENDING";
                     const isUpdating = updatingSignerId === signer.id;
+
                     return (
-                      <div key={signer.id} className="border border-gray-200 rounded-lg p-3">
+                      <div
+                        key={signer.id}
+                        className="border border-gray-200 rounded-lg p-3"
+                      >
                         <p className="text-sm font-medium text-gray-900 break-all">
                           {signer.email}
                         </p>
+
                         <p className="text-xs text-gray-600 mt-1">
-                          Status: <span className="font-semibold">{signer.status}</span>
+                          Status:{" "}
+                          <span className="font-semibold">{signer.status}</span>
                         </p>
+
                         {signer.signedAt && (
                           <p className="text-xs text-gray-500 mt-1">
                             Signed At: {formatDate(signer.signedAt)}
                           </p>
                         )}
+
                         {signer.rejectionReason && (
                           <p className="text-xs text-red-600 mt-1">
                             Reason: {signer.rejectionReason}
                           </p>
                         )}
+
                         <div className="flex gap-2 mt-3">
                           <Button
                             variant="primary"
@@ -288,6 +331,7 @@ export const DocumentDetails = () => {
                           >
                             {isUpdating ? "Updating..." : "Accept"}
                           </Button>
+
                           <Button
                             variant="danger"
                             icon={<XCircle className="w-4 h-4" />}
@@ -297,6 +341,7 @@ export const DocumentDetails = () => {
                             {isUpdating ? "Updating..." : "Reject"}
                           </Button>
                         </div>
+
                         {!isPending && (
                           <p className="text-xs text-gray-400 mt-2">
                             This signer status is finalized.
@@ -317,14 +362,17 @@ export const DocumentDetails = () => {
                 <UserPlus className="w-4 h-4 text-primary-600" />
                 Add Signers
               </h3>
+
               <p className="text-xs text-gray-500 mb-3">
                 Enter emails separated by commas.
               </p>
+
               <Input
                 placeholder="example@gmail.com, test@gmail.com"
                 value={emails}
                 onChange={(e) => setEmails(e.target.value)}
               />
+
               <Button
                 variant="primary"
                 className="mt-3 w-full"

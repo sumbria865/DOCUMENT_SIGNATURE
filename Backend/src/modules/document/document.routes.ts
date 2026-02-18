@@ -34,7 +34,7 @@ router.post(
 router.get("/my", protect, getMyDocuments);
 
 // Serve original or signed PDF — redirect to Cloudinary public URL
-router.get("/:id/file", async (req, res): Promise<void> => {
+router.get("/:id/file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
       where: { id: req.params.id },
@@ -60,8 +60,8 @@ router.get("/:id/file", async (req, res): Promise<void> => {
   }
 });
 
-// Proxy route — streams PDF through backend (use if redirect doesn't work in PDF viewer)
-router.get("/:id/signed-file", async (req, res): Promise<void> => {
+// Proxy route — streams PDF through backend (BEST FOR REACT PDF VIEWER)
+router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
       where: { id: req.params.id },
@@ -74,7 +74,6 @@ router.get("/:id/signed-file", async (req, res): Promise<void> => {
 
     const fileUrl = doc.signedUrl || doc.originalUrl;
 
-    // ✅ ADD THESE TWO LINES
     console.log("📄 originalUrl:", doc.originalUrl);
     console.log("📄 signedUrl:", doc.signedUrl);
     console.log("📄 Using fileUrl:", fileUrl);
@@ -87,28 +86,35 @@ router.get("/:id/signed-file", async (req, res): Promise<void> => {
     const response = await fetch(fileUrl);
 
     if (!response.ok) {
-      // ✅ ADD THIS
-      console.error("❌ Cloudinary fetch failed:", response.status, response.statusText, "URL:", fileUrl);
-      res.status(500).json({ 
+      console.error(
+        "❌ Cloudinary fetch failed:",
+        response.status,
+        response.statusText,
+        "URL:",
+        fileUrl
+      );
+
+      res.status(500).json({
         message: "Failed to fetch file from Cloudinary",
         cloudinaryStatus: response.status,
-        url: fileUrl  // ✅ shows the actual URL in browser
+        url: fileUrl,
       });
       return;
     }
 
     const buffer = await response.arrayBuffer();
 
+    // ✅ Important headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "inline");
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+
     res.send(Buffer.from(buffer));
   } catch (err: any) {
     console.error("Proxy file error:", err);
     res.status(500).json({ message: err.message });
   }
 });
-
 
 // These come AFTER the specific routes above
 router.get("/:id", protect, getDocumentById);
