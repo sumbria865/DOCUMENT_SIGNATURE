@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import prisma from "../../config/db";
+import cloudinary from "../../config/cloudinary";
 import {
   createDocument,
   getMyDocuments,
@@ -59,7 +60,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// Proxy route — streams PDF through backend with Cloudinary API credentials
+// ✅ Proxy route — uses Cloudinary SDK signed URL to fetch and stream PDF
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -82,30 +83,38 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // ✅ FIX: Add Cloudinary API credentials so raw files are served without 401
-    const apiKey = process.env.CLOUDINARY_API_KEY!;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET!;
-    const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
+    // ✅ Extract public_id from Cloudinary URL
+    // URL format: https://res.cloudinary.com/CLOUD/raw/upload/v123/documents/filename.pdf
+    const urlParts = fileUrl.split("/upload/");
+    if (urlParts.length < 2) {
+      res.status(500).json({ message: "Invalid Cloudinary URL format" });
+      return;
+    }
 
-    const response = await fetch(fileUrl, {
-      headers: {
-        Authorization: `Basic ${credentials}`,
-      },
+    // Remove version prefix (v1234567/) if present, then remove .pdf extension
+    const publicId = urlParts[1]
+      .replace(/^v\d+\//, "")  // remove version
+      .replace(/\.pdf$/, "");  // remove extension
+
+    console.log("📄 Extracted public_id:", publicId);
+
+    // ✅ Generate a signed URL using Cloudinary SDK (valid for 1 hour)
+    const signedUrl = cloudinary.utils.private_download_url(publicId, "pdf", {
+      resource_type: "raw",
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      attachment: false,
     });
 
-    if (!response.ok) {
-      console.error(
-        "❌ Cloudinary fetch failed:",
-        response.status,
-        response.statusText,
-        "URL:",
-        fileUrl
-      );
+    console.log("📄 Signed URL generated:", signedUrl);
 
+    // Fetch the file using signed URL
+    const response = await fetch(signedUrl);
+
+    if (!response.ok) {
+      console.error("❌ Cloudinary fetch failed:", response.status, response.statusText);
       res.status(500).json({
         message: "Failed to fetch file from Cloudinary",
         cloudinaryStatus: response.status,
-        url: fileUrl,
       });
       return;
     }
