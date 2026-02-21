@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://back-sign-5trk.onrender.com/api'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://bac-dep.onrender.com/api';
 
 export const ROUTES = {
   HOME: '/',
