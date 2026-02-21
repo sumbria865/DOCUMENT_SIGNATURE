@@ -18,8 +18,6 @@ import { Input } from "../../components/ui/Input";
 import { formatDate } from "../../utils/formatDate";
 import { PdfViewer } from "../../components/pdf/PdfViewer";
 
-const API_BASE_URL = "https://bac-dep.onrender.com/api";
-
 export const DocumentDetails = () => {
   const { id } = useParams<{ id: string }>();
 
@@ -179,8 +177,10 @@ export const DocumentDetails = () => {
     );
   }
 
-  // ✅ IMPORTANT: Use proxy route instead of redirect route
-  const pdfUrl = `${API_BASE_URL}/api/documents/${document.id}/signed-file`;
+  // ✅ FIX: Use Cloudinary URLs directly from document object
+  // - Show signedUrl if document is signed, otherwise show originalUrl
+  // - No backend proxy needed, no double /api/ bug
+  const pdfUrl = document.signedUrl || document.originalUrl || "";
   const originalFileName = `document-${document.id}.pdf`;
 
   return (
@@ -245,7 +245,14 @@ export const DocumentDetails = () => {
               </div>
             </div>
 
-            <PdfViewer url={pdfUrl} fileName={originalFileName} />
+            {/* Show message if no URL available */}
+            {!pdfUrl ? (
+              <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 text-center text-gray-600">
+                <p className="text-sm">No PDF available for this document.</p>
+              </div>
+            ) : (
+              <PdfViewer url={pdfUrl} fileName={originalFileName} />
+            )}
           </div>
 
           {/* Info + Signers */}
