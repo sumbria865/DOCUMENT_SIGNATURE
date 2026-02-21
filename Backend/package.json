@@ -22,6 +22,7 @@
     "@types/node": "^25.2.3",
     "@types/node-fetch": "^2.6.13",
     "@types/nodemailer": "^7.0.9",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "buffer": "^6.0.3",
     "cloudinary": "^2.9.0",

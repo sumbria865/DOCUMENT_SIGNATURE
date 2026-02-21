@@ -52,7 +52,6 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // Redirect to Cloudinary public URL directly
     res.redirect(fileUrl);
   } catch (err: any) {
     console.error("File route error:", err);
@@ -60,7 +59,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// Proxy route — streams PDF through backend (BEST FOR REACT PDF VIEWER)
+// Proxy route — streams PDF through backend with Cloudinary API credentials
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -83,7 +82,16 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    const response = await fetch(fileUrl);
+    // ✅ FIX: Add Cloudinary API credentials so raw files are served without 401
+    const apiKey = process.env.CLOUDINARY_API_KEY!;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET!;
+    const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64");
+
+    const response = await fetch(fileUrl, {
+      headers: {
+        Authorization: `Basic ${credentials}`,
+      },
+    });
 
     if (!response.ok) {
       console.error(
@@ -104,7 +112,6 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
 
     const buffer = await response.arrayBuffer();
 
-    // ✅ Important headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "inline");
     res.setHeader("Cache-Control", "no-store");

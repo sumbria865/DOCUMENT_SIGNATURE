@@ -18,11 +18,14 @@ import { Input } from "../../components/ui/Input";
 import { formatDate } from "../../utils/formatDate";
 import { PdfViewer } from "../../components/pdf/PdfViewer";
 
+const API_BASE_URL = "https://bac-dep.onrender.com/api";
+
 export const DocumentDetails = () => {
   const { id } = useParams<{ id: string }>();
 
   const [document, setDocument] = useState<Document | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pdfUrl, setPdfUrl] = useState<string>("");
   const [emails, setEmails] = useState<string>("");
   const [isAddingSigners, setIsAddingSigners] = useState(false);
   const [isDownloadingOriginal, setIsDownloadingOriginal] = useState(false);
@@ -33,6 +36,13 @@ export const DocumentDetails = () => {
     fetchDocument();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // ✅ Set PDF URL to backend proxy — streams through backend with auth
+  useEffect(() => {
+    if (!document) return;
+    // PdfViewer sends Authorization header automatically, backend proxies to Cloudinary
+    setPdfUrl(`${API_BASE_URL}/documents/${document.id}/file`);
+  }, [document?.id]);
 
   const fetchDocument = async () => {
     try {
@@ -177,10 +187,6 @@ export const DocumentDetails = () => {
     );
   }
 
-  // ✅ FIX: Use Cloudinary URLs directly from document object
-  // - Show signedUrl if document is signed, otherwise show originalUrl
-  // - No backend proxy needed, no double /api/ bug
-  const pdfUrl = document.signedUrl || document.originalUrl || "";
   const originalFileName = `document-${document.id}.pdf`;
 
   return (
@@ -228,9 +234,7 @@ export const DocumentDetails = () => {
                   onClick={handleDownloadOriginal}
                   disabled={isDownloadingOriginal}
                 >
-                  {isDownloadingOriginal
-                    ? "Downloading..."
-                    : "Download Original"}
+                  {isDownloadingOriginal ? "Downloading..." : "Download Original"}
                 </Button>
 
                 {document.signedUrl && (
@@ -245,7 +249,6 @@ export const DocumentDetails = () => {
               </div>
             </div>
 
-            {/* Show message if no URL available */}
             {!pdfUrl ? (
               <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 text-center text-gray-600">
                 <p className="text-sm">No PDF available for this document.</p>
