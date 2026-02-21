@@ -41,7 +41,7 @@ export const DocumentDetails = () => {
   useEffect(() => {
     if (!document) return;
     // PdfViewer sends Authorization header automatically, backend proxies to Cloudinary
-    setPdfUrl(`${API_BASE_URL}/documents/${document.id}/file`);
+   setPdfUrl(`${API_BASE_URL}/documents/${document.id}/signed-file`);
   }, [document?.id]);
 
   const fetchDocument = async () => {
