@@ -50,7 +50,7 @@ router.get("/test-tokens", async (req, res) => {
       orderBy: { signedAt: "desc" },
     });
 
-    const FRONTEND_URL = process.env.FRONTEND_URL || "https://front-doc.onrender.com";
+    const FRONTEND_URL = process.env.FRONTEND_URL || "https://front-dep.onrender.com";
 
     const urls = signers.map((s) => ({
       email: s.email,
