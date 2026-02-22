@@ -1,7 +1,6 @@
 import express from "express";
 import multer from "multer";
 import prisma from "../../config/db";
-import cloudinary from "../../config/cloudinary";
 import {
   createDocument,
   getMyDocuments,
@@ -60,7 +59,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// ✅ Proxy route — uses Cloudinary SDK signed URL to fetch and stream PDF
+// ✅ FIXED Proxy route — directly fetches public Cloudinary PDF and streams it
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -83,32 +82,10 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // ✅ Extract public_id from Cloudinary URL
-    // URL format: https://res.cloudinary.com/CLOUD/raw/upload/v123/documents/filename.pdf
-    const urlParts = fileUrl.split("/upload/");
-    if (urlParts.length < 2) {
-      res.status(500).json({ message: "Invalid Cloudinary URL format" });
-      return;
-    }
+    // ✅ Directly fetch the public Cloudinary URL — no signing needed
+    const response = await fetch(fileUrl);
 
-    // Remove version prefix (v1234567/) if present, then remove .pdf extension
-    const publicId = urlParts[1]
-      .replace(/^v\d+\//, "")  // remove version
-      .replace(/\.pdf$/, "");  // remove extension
-
-    console.log("📄 Extracted public_id:", publicId);
-
-    // ✅ Generate a signed URL using Cloudinary SDK (valid for 1 hour)
-    const signedUrl = cloudinary.utils.private_download_url(publicId, "pdf", {
-      resource_type: "raw",
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      attachment: false,
-    });
-
-    console.log("📄 Signed URL generated:", signedUrl);
-
-    // Fetch the file using signed URL
-    const response = await fetch(signedUrl);
+    console.log("📄 Cloudinary fetch status:", response.status);
 
     if (!response.ok) {
       console.error("❌ Cloudinary fetch failed:", response.status, response.statusText);
