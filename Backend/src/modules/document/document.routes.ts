@@ -127,8 +127,34 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
     upstream.data.pipe(res);
 
   } catch (err: any) {
-    console.error("Proxy file error:", err);
-    res.status(500).json({ message: err.message });
+    // Enhanced logging for upstream/axios errors
+    console.error("Proxy file error:", err?.message || err);
+
+    // If Axios error, log response/request for more context
+    try {
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          console.error("Upstream response status:", err.response.status);
+          console.error("Upstream response headers:", err.response.headers);
+
+          // Try to log small portion of response data if available
+          try {
+            const dataSnippet = typeof err.response.data === 'string'
+              ? err.response.data.slice(0, 1000)
+              : JSON.stringify(err.response.data).slice(0, 1000);
+            console.error("Upstream response data snippet:", dataSnippet);
+          } catch (e) {
+            console.error("Could not stringify upstream response data", e);
+          }
+        } else if (err.request) {
+          console.error("No response received from upstream. Request details:", err.request);
+        }
+      }
+    } catch (logErr) {
+      console.error("Error while logging axios error details:", logErr);
+    }
+
+    res.status(500).json({ message: err.message || "Internal Server Error" });
   }
 });
 
