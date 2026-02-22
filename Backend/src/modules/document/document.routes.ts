@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import prisma from "../../config/db";
+import cloudinary from "../../config/cloudinary";
 import {
   createDocument,
   getMyDocuments,
@@ -33,7 +34,7 @@ router.post(
 
 router.get("/my", protect, getMyDocuments);
 
-// Serve original or signed PDF — redirect to Cloudinary public URL
+// Serve original or signed PDF
 router.get("/:id/file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -59,7 +60,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// ✅ FIXED — redirect to Cloudinary URL directly
+// ✅ FIXED — generates a signed URL for private Cloudinary files
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -82,8 +83,24 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // ✅ Redirect directly to Cloudinary — no proxy fetch needed
-    res.redirect(fileUrl);
+    // Extract public_id from Cloudinary URL
+    const urlParts = fileUrl.split("/upload/");
+    const publicId = urlParts[1]
+      .replace(/^v\d+\//, "")
+      .replace(/\.pdf$/, "");
+
+    console.log("📄 public_id:", publicId);
+
+    // ✅ Generate a signed URL valid for 1 hour
+    const signedUrl = cloudinary.url(publicId, {
+      resource_type: "raw",
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    console.log("📄 Redirecting to signed URL:", signedUrl);
+
+    res.redirect(signedUrl);
 
   } catch (err: any) {
     console.error("Proxy file error:", err);
