@@ -3,17 +3,18 @@ import cloudinary from "../../config/cloudinary";
 import crypto from "crypto";
 import { DocumentStatus } from "@prisma/client";
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://feontend-deployed.onrender.com';
+
 export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
   try {
     const uploadResult = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
           {
-            resource_type: "raw",
+            resource_type: "auto", // ✅ changed from "raw"
             folder: "documents",
             format: "pdf",
             type: "upload",
-            
           },
           (error, result) => {
             if (error) reject(error);
@@ -87,7 +88,7 @@ export const uploadSignedDocumentService = async (
       cloudinary.uploader
         .upload_stream(
           {
-            resource_type: "raw",
+            resource_type: "auto", // ✅ changed from "raw"
             folder: "signed-documents",
             format: "pdf",
             type: "upload",
@@ -182,7 +183,7 @@ export const addSignersService = async (
     createdSigners.forEach((signer, index) => {
       console.log(`\n[${index + 1}] Email: ${signer.email}`);
       console.log(`    Token: ${signer.token}`);
-      console.log(`    Signing URL: http://localhost:3000/sign/${signer.token}`);
+      console.log(`    Signing URL: ${FRONTEND_URL}/sign/${signer.token}`); // ✅ fixed
       console.log("-".repeat(80));
     });
     console.log("=".repeat(80) + "\n");
