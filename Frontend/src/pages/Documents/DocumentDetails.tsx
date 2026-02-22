@@ -18,7 +18,7 @@ import { Input } from "../../components/ui/Input";
 import { formatDate } from "../../utils/formatDate";
 import { PdfViewer } from "../../components/pdf/PdfViewer";
 
-const API_BASE_URL = "https://bac-dep.onrender.com/api";
+const API_BASE_URL = "https://backend-deployed-k6st.onrender.com/api";
 
 export const DocumentDetails = () => {
   const { id } = useParams<{ id: string }>();
