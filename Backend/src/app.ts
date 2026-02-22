@@ -7,7 +7,7 @@ import { errorMiddleware } from "./middlewares/error.middleware";
 const app = express();
 
 app.use(cors({
-  origin: 'https://front-dep.onrender.com',
+  origin: 'https://feontend-deployed.onrender.com', // ✅ new frontend URL
   credentials: true
 }));
 app.use(express.json({ limit: "10mb" }));
