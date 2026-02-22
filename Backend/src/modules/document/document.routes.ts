@@ -98,12 +98,15 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
     console.log("📄 public_id:", publicId);
     console.log("📄 version:", version);
 
-    // ✅ Generate signed URL with correct version
+    // Determine Cloudinary resource type from the original file URL
+    const resourceType = fileUrl.includes("/image/") ? "image" : "raw";
+
+    // ✅ Generate signed URL with correct resource type and version
     const signedUrl = cloudinary.url(publicId, {
-      resource_type: "raw",
+      resource_type: resourceType,
       type: "upload",
       sign_url: true,
-      version: version,          // ✅ pass exact version
+      version: version,
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     });
 
@@ -138,13 +141,12 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
           console.error("Upstream response headers:", err.response.headers);
 
           // Try to log small portion of response data if available
-          try {
-            const dataSnippet = typeof err.response.data === 'string'
-              ? err.response.data.slice(0, 1000)
-              : JSON.stringify(err.response.data).slice(0, 1000);
-            console.error("Upstream response data snippet:", dataSnippet);
-          } catch (e) {
-            console.error("Could not stringify upstream response data", e);
+          // Log a small snippet if the response data is a string. Avoid
+          // attempting to JSON.stringify complex stream/socket objects
+          if (typeof err.response.data === "string") {
+            console.error("Upstream response data snippet:", err.response.data.slice(0, 1000));
+          } else {
+            console.error("Upstream response data is not a string; skipping snippet logging");
           }
         } else if (err.request) {
           console.error("No response received from upstream. Request details:", err.request);
