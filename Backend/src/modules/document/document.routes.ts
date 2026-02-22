@@ -60,7 +60,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// ✅ FIXED — generates a signed URL for private Cloudinary files
+// ✅ FIXED — generates a signed URL for Cloudinary files
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -94,6 +94,7 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
     // ✅ Generate a signed URL valid for 1 hour
     const signedUrl = cloudinary.url(publicId, {
       resource_type: "raw",
+      type: "upload",       // ✅ added this
       sign_url: true,
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     });
