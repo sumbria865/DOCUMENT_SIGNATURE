@@ -1,4 +1,5 @@
 import express from "express";
+import axios from "axios";
 import multer from "multer";
 import prisma from "../../config/db";
 import cloudinary from "../../config/cloudinary";
@@ -106,9 +107,24 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     });
 
-    console.log("📄 Redirecting to signed URL:", signedUrl);
+    console.log("📄 Fetching signed URL and proxying response:", signedUrl);
 
-    res.redirect(signedUrl);
+    // Proxy the Cloudinary signed URL through the backend to avoid CORS
+    const upstream = await axios.get(signedUrl, { responseType: "stream" });
+
+    // Forward content-type and content-length when available
+    if (upstream.headers["content-type"]) {
+      res.setHeader("Content-Type", upstream.headers["content-type"]);
+    } else {
+      res.setHeader("Content-Type", "application/pdf");
+    }
+
+    if (upstream.headers["content-length"]) {
+      res.setHeader("Content-Length", upstream.headers["content-length"]);
+    }
+
+    // Stream the response to the client
+    upstream.data.pipe(res);
 
   } catch (err: any) {
     console.error("Proxy file error:", err);
