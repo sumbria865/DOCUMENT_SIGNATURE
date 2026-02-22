@@ -2,7 +2,8 @@ import axios from 'axios';
 import { API_BASE_URL } from '../utils/constants';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL 
+    || 'https://backend-deployed-k6st.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
