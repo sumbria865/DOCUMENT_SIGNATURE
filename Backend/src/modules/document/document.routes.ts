@@ -60,7 +60,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// ✅ FIXED — generates a signed URL for Cloudinary files
+// ✅ FIXED — generates a signed URL with correct version for Cloudinary files
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -83,19 +83,26 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // Extract public_id from Cloudinary URL
+    // Extract public_id and version from Cloudinary URL
     const urlParts = fileUrl.split("/upload/");
-    const publicId = urlParts[1]
-      .replace(/^v\d+\//, "")
-      .replace(/\.pdf$/, "");
+    const afterUpload = urlParts[1]; // e.g. "v1771772179/documents/file.pdf"
+
+    const versionMatch = afterUpload.match(/^v(\d+)\//);
+    const version = versionMatch ? parseInt(versionMatch[1]) : undefined;
+
+    const publicId = afterUpload
+      .replace(/^v\d+\//, "")   // remove version prefix
+      .replace(/\.pdf$/, "");   // remove .pdf extension
 
     console.log("📄 public_id:", publicId);
+    console.log("📄 version:", version);
 
-    // ✅ Generate a signed URL valid for 1 hour
+    // ✅ Generate signed URL with correct version
     const signedUrl = cloudinary.url(publicId, {
       resource_type: "raw",
-      type: "upload",       // ✅ added this
+      type: "upload",
       sign_url: true,
+      version: version,          // ✅ pass exact version
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     });
 
