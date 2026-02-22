@@ -59,7 +59,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
-// ✅ FIXED Proxy route — directly fetches public Cloudinary PDF and streams it
+// ✅ FIXED — redirect to Cloudinary URL directly
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({
@@ -82,27 +82,9 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
       return;
     }
 
-    // ✅ Directly fetch the public Cloudinary URL — no signing needed
-    const response = await fetch(fileUrl);
+    // ✅ Redirect directly to Cloudinary — no proxy fetch needed
+    res.redirect(fileUrl);
 
-    console.log("📄 Cloudinary fetch status:", response.status);
-
-    if (!response.ok) {
-      console.error("❌ Cloudinary fetch failed:", response.status, response.statusText);
-      res.status(500).json({
-        message: "Failed to fetch file from Cloudinary",
-        cloudinaryStatus: response.status,
-      });
-      return;
-    }
-
-    const buffer = await response.arrayBuffer();
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline");
-    res.setHeader("Cache-Control", "no-store");
-
-    res.send(Buffer.from(buffer));
   } catch (err: any) {
     console.error("Proxy file error:", err);
     res.status(500).json({ message: err.message });

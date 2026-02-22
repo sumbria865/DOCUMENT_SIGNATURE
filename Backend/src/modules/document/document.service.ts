@@ -13,7 +13,7 @@ export const uploadDocument = async (ownerId: string, fileBuffer: Buffer) => {
             folder: "documents",
             format: "pdf",
             type: "upload",
-            access_mode: "public",
+            
           },
           (error, result) => {
             if (error) reject(error);

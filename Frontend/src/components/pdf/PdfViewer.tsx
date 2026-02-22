@@ -32,7 +32,6 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
 
   const safeUrl = useMemo(() => url?.trim() || "", [url]);
 
-  // Fetch PDF as blob so react-pdf works smoothly
   useEffect(() => {
     if (!safeUrl) return;
 
@@ -45,8 +44,10 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
     const token = localStorage.getItem("token");
     let objectUrl = "";
 
+    // ✅ redirect: "follow" handles the backend redirect to Cloudinary
     fetch(safeUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      redirect: "follow",
     })
       .then((res) => {
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
@@ -62,7 +63,6 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
         setLoading(false);
       });
 
-    // ✅ Cleanup blob URL properly
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
@@ -90,6 +90,7 @@ export const PdfViewer = ({ url, fileName = "document.pdf" }: Props) => {
 
       const response = await fetch(safeUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        redirect: "follow", // ✅ added here too
       });
 
       if (!response.ok) throw new Error(`Failed to fetch PDF (${response.status})`);
