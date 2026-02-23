@@ -61,6 +61,48 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
   }
 });
 
+// Debug endpoint (owner-only) — returns stored and computed URLs for inspection
+router.get("/:id/debug-urls", protect, async (req, res): Promise<void> => {
+  try {
+    const doc = await prisma.document.findUnique({ where: { id: req.params.id } });
+
+    if (!doc) return res.status(404).json({ message: "Document not found" });
+    if (doc.ownerId !== req.user.id) return res.status(403).json({ message: "Access denied" });
+
+    const fileUrl = doc.signedUrl || doc.originalUrl;
+
+    const urlParts = fileUrl ? fileUrl.split("/upload/") : [null, null];
+    const afterUpload = urlParts[1] || "";
+    const versionMatch = afterUpload.match(/^v(\d+)\//);
+    const version = versionMatch ? parseInt(versionMatch[1]) : undefined;
+    const publicId = afterUpload.replace(/^v\d+\//, "").replace(/\.pdf$/, "");
+    const resourceType = fileUrl && fileUrl.includes("/image/") ? "image" : "raw";
+
+    const computedSignedUrl = fileUrl
+      ? cloudinary.url(publicId, {
+          resource_type: resourceType,
+          type: "upload",
+          sign_url: true,
+          version: version,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+        })
+      : null;
+
+    res.json({
+      originalUrl: doc.originalUrl,
+      signedUrl: doc.signedUrl,
+      fileUrl,
+      publicId,
+      version,
+      resourceType,
+      computedSignedUrl,
+    });
+  } catch (err: any) {
+    console.error("Debug URLs error:", err);
+    res.status(500).json({ message: err.message || "Internal Server Error" });
+  }
+});
+
 // ✅ FIXED — generates a signed URL with correct version for Cloudinary files
 router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
   try {
