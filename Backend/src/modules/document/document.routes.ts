@@ -112,8 +112,25 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
 
     console.log("📄 Fetching signed URL and proxying response:", signedUrl);
 
-    // Proxy the Cloudinary signed URL through the backend to avoid CORS
-    const upstream = await axios.get(signedUrl, { responseType: "stream" });
+    // Try signed URL first (preferred). If Cloudinary denies access (401)
+    // or signing fails for any reason, fall back to proxying the original
+    // `fileUrl` (this helps avoid 500s when credentials/ACLs differ on deploy).
+    let upstream;
+    try {
+      upstream = await axios.get(signedUrl, { responseType: "stream" });
+    } catch (signErr: any) {
+      console.warn("Signed URL fetch failed, attempting direct fileUrl fallback:", signErr?.message || signErr);
+
+      // Attempt to fetch the original file URL directly as a fallback
+      try {
+        upstream = await axios.get(fileUrl, { responseType: "stream" });
+        console.log("Fallback to original fileUrl succeeded");
+      } catch (fallbackErr: any) {
+        console.error("Fallback fetch also failed:", fallbackErr?.message || fallbackErr);
+        // Re-throw to be handled by outer catch block which logs axios details
+        throw fallbackErr;
+      }
+    }
 
     // Forward content-type and content-length when available
     if (upstream.headers["content-type"]) {
