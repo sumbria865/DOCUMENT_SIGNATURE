@@ -64,10 +64,24 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
 // Debug endpoint (owner-only) — returns stored and computed URLs for inspection
 router.get("/:id/debug-urls", protect, async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
-    const doc = await prisma.document.findUnique({ where: { id: req.params.id } });
+    let { id } = req.params as any;
+    if (Array.isArray(id)) id = id[0];
+    if (!id || typeof id !== "string") {
+      res.status(400).json({ message: "Invalid document id" });
+      return;
+    }
 
-    if (!doc) return res.status(404).json({ message: "Document not found" });
-    if (doc.ownerId !== req.user.id) return res.status(403).json({ message: "Access denied" });
+    const doc = await prisma.document.findUnique({ where: { id } });
+
+    if (!doc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    if (doc.ownerId !== req.user.id) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
 
     const fileUrl = doc.signedUrl || doc.originalUrl;
 
