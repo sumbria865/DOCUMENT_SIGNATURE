@@ -157,33 +157,48 @@ router.get("/:id/signed-file", protect, async (req, res): Promise<void> => {
     // Determine Cloudinary resource type from the original file URL
     const resourceType = fileUrl.includes("/image/") ? "image" : "raw";
 
-    // ✅ Generate signed URL with correct resource type and version
-    const signedUrl = cloudinary.url(publicId, {
-      resource_type: resourceType,
-      type: "upload",
-      sign_url: true,
-      version: version,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-    });
+    // Build candidate signed URLs with different `type` options. Some
+    // assets are uploaded with `access_mode: authenticated` and require
+    // `type: 'authenticated'` when generating signed URLs.
+    const candidateTypes = ["authenticated", "upload"];
+    const signedUrlCandidates: string[] = candidateTypes.map((t) =>
+      cloudinary.url(publicId, {
+        resource_type: resourceType,
+        type: t as any,
+        sign_url: true,
+        secure: true,
+        version: version,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+      })
+    );
 
-    console.log("📄 Fetching signed URL and proxying response:", signedUrl);
+    console.log("📄 Signed URL candidates:", signedUrlCandidates);
 
-    // Try signed URL first (preferred). If Cloudinary denies access (401)
-    // or signing fails for any reason, fall back to proxying the original
-    // `fileUrl` (this helps avoid 500s when credentials/ACLs differ on deploy).
-    let upstream;
-    try {
-      upstream = await axios.get(signedUrl, { responseType: "stream" });
-    } catch (signErr: any) {
-      console.warn("Signed URL fetch failed, attempting direct fileUrl fallback:", signErr?.message || signErr);
+    // Try each signed URL candidate until one succeeds, otherwise fall
+    // back to fetching the original fileUrl directly.
+    let upstream: any = null;
+    let lastError: any = null;
 
-      // Attempt to fetch the original file URL directly as a fallback
+    for (const candidate of signedUrlCandidates) {
+      try {
+        console.log("Trying signed URL candidate:", candidate);
+        upstream = await axios.get(candidate, { responseType: "stream" });
+        console.log("Signed URL candidate succeeded");
+        break;
+      } catch (e: any) {
+        console.warn("Signed URL candidate failed:", e?.message || e);
+        lastError = e;
+        // try next candidate
+      }
+    }
+
+    if (!upstream) {
+      console.warn("All signed URL candidates failed, attempting direct fileUrl fallback. Last error:", lastError?.message || lastError);
       try {
         upstream = await axios.get(fileUrl, { responseType: "stream" });
         console.log("Fallback to original fileUrl succeeded");
       } catch (fallbackErr: any) {
         console.error("Fallback fetch also failed:", fallbackErr?.message || fallbackErr);
-        // Re-throw to be handled by outer catch block which logs axios details
         throw fallbackErr;
       }
     }
