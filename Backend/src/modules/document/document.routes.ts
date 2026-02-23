@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import axios from "axios";
 import multer from "multer";
 import prisma from "../../config/db";
@@ -62,7 +62,7 @@ router.get("/:id/file", protect, async (req, res): Promise<void> => {
 });
 
 // Debug endpoint (owner-only) — returns stored and computed URLs for inspection
-router.get("/:id/debug-urls", protect, async (req, res): Promise<void> => {
+router.get("/:id/debug-urls", protect, async (req: Request & { user?: any }, res: Response): Promise<void> => {
   try {
     const doc = await prisma.document.findUnique({ where: { id: req.params.id } });
 
