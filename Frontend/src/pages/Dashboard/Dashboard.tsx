@@ -152,7 +152,7 @@ export const Dashboard = () => {
 
           <div className="flex gap-3 mt-4 md:mt-0">
             <Link to="/documents/upload">
-              <Button className="bg-white text-blue-600 hover:bg-gray-100">
+              <Button variant="secondary">
                 Upload Document
               </Button>
             </Link>
@@ -234,7 +234,7 @@ export const Dashboard = () => {
                   Upload your first document to get started
                 </p>
                 <Link to="/documents/upload">
-                  <Button>Upload Document</Button>
+                  <Button variant="secondary">Upload Document</Button>
                 </Link>
               </div>
             ) : (
